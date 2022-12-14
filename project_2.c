@@ -11,9 +11,13 @@ int emergencyFrequency = 30; // frequency of emergency gift requests from New Ze
 void* ElfA(void *arg); // the one that can paint
 void* ElfB(void *arg); // the one that can assemble
 void* Santa(void *arg); 
+
 void* ControlThread(void *arg); // handles printing and queues (up to you)
+
 void* addPackageQueue(void *arg);
 void* addDeliveryQueue(void *arg);
+void* addPaintQueue(void *arg);
+void* addAssemblyQueue(void *arg);
 
 time_t startTime;
 int task_count = 0; 
@@ -120,7 +124,7 @@ int main(int argc,char **argv){
     pthread_mutex_init(&QA_mut, NULL);
     pthread_mutex_init(&delivery_mut, NULL);
     
-    pthread_t package_thread, delivery_thread;
+    pthread_t package_thread, delivery_thread, paint_thread, assembly_thread;
     //printf("start: %d\n", startTime);
     
     while(passedTime()<simulationTime){
@@ -134,19 +138,49 @@ int main(int argc,char **argv){
 	    		
 	    		pthread_create(&package_thread, NULL, addPackageQueue, NULL);
 	    		pthread_create(&delivery_thread, NULL, addDeliveryQueue, NULL);
+
 	    		pthread_detach(package_thread);
+                pthread_detach(delivery_thread);
+
 	    		pthread_join(package_thread, NULL);
 	    		pthread_join(delivery_thread, NULL);
 	    		
 	    	}
-	    	/*
+	    	
 	    	if(gift_type == 2){
 	    		printf("package + paint\n");
+
+                pthread_create(&paint_thread, NULL, addPaintQueue, NULL);
+                pthread_create(&package_thread, NULL, addPackageQueue, NULL);
+	    		pthread_create(&delivery_thread, NULL, addDeliveryQueue, NULL);
+
+	    		pthread_detach(paint_thread);
+                pthread_detach(package_thread);
+                pthread_detach(delivery_thread);
+
+                pthread_join(paint_thread, NULL);
+	    		pthread_join(package_thread, NULL);
+	    		pthread_join(delivery_thread, NULL);
 	    		
 	    	}
+            
 	    	if(gift_type == 3){
 	    		printf("package + assembly\n");
+                pthread_create(&assembly_thread, NULL, addAssemblyQueue, NULL);
+                pthread_create(&package_thread, NULL, addPackageQueue, NULL);
+	    		pthread_create(&delivery_thread, NULL, addDeliveryQueue, NULL);
+
+	    		pthread_detach(assembly_thread);
+                pthread_detach(package_thread);
+                pthread_detach(delivery_thread);
+
+                pthread_join(assembly_thread, NULL);
+	    		pthread_join(package_thread, NULL);
+	    		pthread_join(delivery_thread, NULL);
+
 	    	}
+
+            /*
 	    	if(gift_type == 4){
 	    		printf("paint + pack + QA\n");
 	    	}
@@ -164,22 +198,23 @@ int main(int argc,char **argv){
     return 0;
 }
 
-void* ElfA(void *arg){ //only does paint
+void* ElfA(void *arg){ 
 	while(passedTime()<simulationTime){
 		pthread_sleep(1);
 		printf("elfA\n");
 		PackagingTask(NULL);
+        PaintingTask(NULL); //only does paint
 		
 	}
 	pthread_exit(0);
 }
 
-void* ElfB(void *arg){ //only does assembly
+void* ElfB(void *arg){ 
 	while(passedTime()<simulationTime){
-		
 		pthread_sleep(1);
 		printf("elfB\n");
 		PackagingTask(NULL);
+        AssemblyTask(NULL); //only does assembly
 		
 	}
 	pthread_exit(0);
@@ -214,12 +249,14 @@ int nextProb(double p){
 	return (rand() % 100) < p;
 }*/
 
+/* This is for probability demonstration*/
 int nextGiftType(){
-     	int types[20] = {0,0,1,1,1,1,1,1,1,1,2,2,2,2,3,3,3,3,4,5};
+     	int types[20] = {0,0,1,1,1,1,1,1,1,1,2,2,2,2,3,3,3,3,4,5}; 
      	int index = rand() % 20;
      	return types[index];
 
 }
+
 void* PackagingTask(void *arg){
 	if (!isEmpty(packaging_queue)){
 			printf("elf in if\n");
@@ -241,6 +278,29 @@ void* DeliveryTask(void *arg){
 			pthread_mutex_unlock(&delivery_mut);
 	}
 }
+
+void* PaintingTask(void *arg){
+	if (!isEmpty(paint_queue)){
+			printf("Painting...\n");
+			pthread_mutex_lock(&paint_mut);
+			Task ret = Dequeue(paint_queue);
+			pthread_sleep(3); // painting time 3 sec
+			printf("painted: %d\n", ret.ID);
+			pthread_mutex_unlock(&paint_mut);
+	}
+}
+
+void* AssemblyTask(void *arg){
+	if (!isEmpty(paint_queue)){
+			printf("Assembling...\n");
+			pthread_mutex_lock(&assembly_mut);
+			Task ret = Dequeue(assembly_queue);
+			pthread_sleep(2); // painting time 3 sec
+			printf("assembled: %d\n", ret.ID);
+			pthread_mutex_unlock(&assembly_mut);
+	}
+}
+
 
 void* addPackageQueue(void *arg){
 	Task t;
@@ -264,6 +324,32 @@ void* addDeliveryQueue(void *arg){
         Enqueue(delivery_queue, t);
         pthread_mutex_unlock(&delivery_mut);
         printf("Added delivery %d\n",t.ID);
+        pthread_exit(0);
+	
+}
+
+void* addPaintQueue(void *arg){
+	Task t;
+        task_count++;
+        pthread_mutex_lock(&paint_mut);  //acquire the lock
+        t.ID = task_count;
+        t.type = 3; //TODO
+        Enqueue(paint_queue, t);
+        pthread_mutex_unlock(&paint_mut);  //release the lock
+        printf("Added painting %d\n",t.ID);
+        pthread_exit(0);
+	
+}
+
+void* addAssemblyQueue(void *arg){
+	Task t;
+        task_count++;
+        pthread_mutex_lock(&assembly_mut);  //acquire the lock
+        t.ID = task_count;
+        t.type = 4; //TODO
+        Enqueue(assembly_queue, t);
+        pthread_mutex_unlock(&assembly_mut);  //release the lock
+        printf("Added assembly %d\n",t.ID);
         pthread_exit(0);
 	
 }
