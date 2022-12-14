@@ -3,16 +3,19 @@
 #include <time.h>
 #include <pthread.h>
 
-int simulationTime = 30;    // simulation time
+int simulationTime = 20;    // simulation time
 int seed = 10;               // seed for randomness
 int emergencyFrequency = 30; // frequency of emergency gift requests from New Zealand
-time_t startTime;
+
 
 void* ElfA(void *arg); // the one that can paint
 void* ElfB(void *arg); // the one that can assemble
 void* Santa(void *arg); 
 void* ControlThread(void *arg); // handles printing and queues (up to you)
+void* addPackageQueue(void *arg);
+void* addDeliveryQueue(void *arg);
 
+time_t startTime;
 int task_count = 0; 
 //new funcs
 int nextGiftType();
@@ -25,10 +28,14 @@ void* AssemblyTask(void *arg);
 void* QATask(void *arg);
 void* DeliveryTask(void *arg);
 
+pthread_cond_t time_cond;
 
 //Task Queues
 struct Queue *packaging_queue, *paint_queue, *assembly_queue, *QA_queue, *delivery_queue;
-
+struct arg_struct {
+    struct Queue *arg1;
+    pthread_mutex_t arg2;
+};
 //mutexes
 pthread_mutex_t packaging_mut, paint_mut, assembly_mut, QA_mut, delivery_mut, task_count_mut;
 
@@ -88,10 +95,12 @@ int main(int argc,char **argv){
     
     //get start time to control simulation time
     startTime = time(NULL);
-    
+    //pthread_cond_init(time_cond,  NULL);
     pthread_t santaThread, elfBThread, elfAThread;
     
+    
     //Santa and Elf initializations
+    pthread_create(&elfAThread, NULL, ControlThread, NULL);
     /*
     pthread_create(&santaThread, NULL, &Santa, NULL);
     pthread_create(&elfAThread, NULL, &ElfA, NULL);
@@ -110,17 +119,25 @@ int main(int argc,char **argv){
     pthread_mutex_init(&assembly_mut, NULL);
     pthread_mutex_init(&QA_mut, NULL);
     pthread_mutex_init(&delivery_mut, NULL);
+    
+    pthread_t package_thread, delivery_thread;
     //printf("start: %d\n", startTime);
+    
     while(passedTime()<simulationTime){
 	    	sleep(1);
 	        printf("%f\n", passedTime());
 	    	//type 1 gift
 	    	int gift_type = nextGiftType();
 	    	if(gift_type == 1){
-	    		printf("package only\n");
-	    		pthread_t package_thread;
-	    		pthread_create(&package_thread, NULL, PackagingTask, NULL);
+	    		printf("package + deliver only\n");
+	    		//addTaskQueue(packaging_queue, packaging_mut);
+	    		
+	    		pthread_create(&package_thread, NULL, addPackageQueue, NULL);
+	    		pthread_create(&delivery_thread, NULL, addDeliveryQueue, NULL);
 	    		pthread_detach(package_thread);
+	    		pthread_join(package_thread, NULL);
+	    		pthread_join(delivery_thread, NULL);
+	    		
 	    	}
 	    	/*
 	    	if(gift_type == 2){
@@ -139,28 +156,58 @@ int main(int argc,char **argv){
 		
 	    
     }
+    //pthread_cond_signal(&time_cond);
     printf("Ending Simulation...\n");
+    //pthrread_cond_destroy(&time_cond);
  
     
     return 0;
 }
 
-void* ElfA(void *arg){
-	
+void* ElfA(void *arg){ //only does paint
+	while(passedTime()<simulationTime){
+		pthread_sleep(1);
+		printf("elfA\n");
+		PackagingTask(NULL);
+		
+	}
+	pthread_exit(0);
 }
 
-void* ElfB(void *arg){
-
+void* ElfB(void *arg){ //only does assembly
+	while(passedTime()<simulationTime){
+		
+		pthread_sleep(1);
+		printf("elfB\n");
+		PackagingTask(NULL);
+		
+	}
+	pthread_exit(0);
 }
 
 // manages Santa's tasks
 void* Santa(void *arg){
+	while(passedTime()<simulationTime){
+		pthread_sleep(1);
+		printf("Santa\n");
+		DeliveryTask(NULL);
+		
+	}
+	pthread_exit(0);
 	
 }
 
 // the function that controls queues and output
 void* ControlThread(void *arg){
-
+	
+	pthread_t elfAThread, elfBThread, santaThread;
+	pthread_create(&elfAThread, NULL, ElfA, NULL);
+	pthread_create(&elfBThread, NULL, ElfB, NULL);
+	pthread_create(&santaThread, NULL, Santa, NULL);
+	pthread_detach(elfBThread);
+	pthread_detach(elfAThread);
+	pthread_detach(santaThread);
+	pthread_exit(0);
 }
 /*
 int nextProb(double p){
@@ -174,13 +221,53 @@ int nextGiftType(){
 
 }
 void* PackagingTask(void *arg){
+	if (!isEmpty(packaging_queue)){
+			printf("elf in if\n");
+			pthread_mutex_lock(&packaging_mut);
+			Task ret = Dequeue(packaging_queue);
+			pthread_sleep(1); //packaging time 1 sec
+			printf("dequeued: %d\n", ret.ID);
+			pthread_mutex_unlock(&packaging_mut);
+	}
+}
+
+void* DeliveryTask(void *arg){
+	if (!isEmpty(delivery_queue)){
+			printf("Santa starts work...\n");
+			pthread_mutex_lock(&delivery_mut);
+			Task ret = Dequeue(delivery_queue);
+			pthread_sleep(1); //deliver time 1 sec
+			printf("delivered: %d\n", ret.ID);
+			pthread_mutex_unlock(&delivery_mut);
+	}
+}
+
+void* addPackageQueue(void *arg){
 	Task t;
         task_count++;
+        pthread_mutex_lock(&packaging_mut);
         t.ID = task_count;
-        t.type = 'P';
+        t.type = 1; //TODO
         Enqueue(packaging_queue, t);
+        pthread_mutex_unlock(&packaging_mut);
+        printf("Added packaging %d\n",t.ID);
         pthread_exit(0);
+	
 }
+
+void* addDeliveryQueue(void *arg){
+	Task t;
+        task_count++;
+        pthread_mutex_lock(&delivery_mut);
+        t.ID = task_count;
+        t.type = 2; //TODO
+        Enqueue(delivery_queue, t);
+        pthread_mutex_unlock(&delivery_mut);
+        printf("Added delivery %d\n",t.ID);
+        pthread_exit(0);
+	
+}
+
 double passedTime(){
      return time(NULL) % startTime;
 }
