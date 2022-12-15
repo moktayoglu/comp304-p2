@@ -20,6 +20,7 @@ void* addPaintQueue(void *arg);
 void* addAssemblyQueue(void *arg);
 void* addQAQueue(void *arg);
 void incrementType4CondCounter();
+void incrementType5CondCounter();
 
 time_t startTime;
 int task_count = 0; 
@@ -173,11 +174,11 @@ int main(int argc,char **argv){
             
 	    	if(gift_type == 3){
 	    		printf("package + assembly\n");
-                	pthread_create(&assembly_thread, NULL, addAssemblyQueue, NULL);
-                	pthread_create(&package_thread, NULL, addPackageQueue, (void *) &gift_type);
+                pthread_create(&assembly_thread, NULL, addAssemblyQueue, NULL);
+                pthread_create(&package_thread, NULL, addPackageQueue, (void *) &gift_type);
 	    		pthread_create(&delivery_thread, NULL, addDeliveryQueue, NULL);
 
-                	pthread_join(assembly_thread, NULL);
+                pthread_join(assembly_thread, NULL);
 	    		pthread_join(package_thread, NULL);
 	    		pthread_join(delivery_thread, NULL);
 
@@ -188,15 +189,25 @@ int main(int argc,char **argv){
 	    		printf("paint + pack + QA\n");
 	    		pthread_create(&paint_thread, NULL, addPaintQueue, NULL);
 	    		pthread_create(&QA_thread, NULL, addQAQueue, NULL);
-                	pthread_create(&package_thread, NULL, addPackageQueue, (void *) &gift_type);
+                pthread_create(&package_thread, NULL, addPackageQueue, (void *) &gift_type);
 	    		pthread_create(&delivery_thread, NULL, addDeliveryQueue, NULL);
 	    		
 	    		pthread_join(package_thread, NULL);
 	    		pthread_join(delivery_thread, NULL);
 
 	    	}
+
+
 	    	if(gift_type == 5){
 	    		printf("assembly + pack + QA\n");
+                pthread_create(&assembly_thread, NULL, addAssemblyQueue, NULL);
+	    		pthread_create(&QA_thread, NULL, addQAQueue, NULL);
+                pthread_create(&package_thread, NULL, addPackageQueue, (void *) &gift_type);
+	    		pthread_create(&delivery_thread, NULL, addDeliveryQueue, NULL);
+	    		
+	    		pthread_join(package_thread, NULL);
+	    		pthread_join(delivery_thread, NULL);
+
 	    	}
 		
 	    
@@ -214,7 +225,7 @@ void* ElfA(void *arg){
 		pthread_sleep(1);
 		printf("elfA\n");
 		PackagingTask(NULL);
-        	PaintingTask(NULL); //only does paint
+        PaintingTask(NULL); //only does paint
 		
 	}
 	pthread_exit(0);
@@ -225,7 +236,7 @@ void* ElfB(void *arg){
 		pthread_sleep(1);
 		printf("elfB\n");
 		PackagingTask(NULL);
-        	AssemblyTask(NULL); //only does assembly
+        AssemblyTask(NULL); //only does assembly
 		
 	}
 	pthread_exit(0);
@@ -247,9 +258,11 @@ void* Santa(void *arg){
 // the function that controls queues and output
 void* ControlThread(void *arg){
 	pthread_t elfAThread, elfBThread, santaThread;
+
 	pthread_create(&elfAThread, NULL, ElfA, NULL);
 	pthread_create(&elfBThread, NULL, ElfB, NULL);
 	pthread_create(&santaThread, NULL, Santa, NULL);
+
 	pthread_detach(elfBThread);
 	pthread_detach(elfAThread);
 	pthread_detach(santaThread);
@@ -291,12 +304,14 @@ void* PaintingTask(void *arg){
 	if (!isEmpty(paint_queue)){
 			printf("Painting...\n");
 			pthread_mutex_lock(&paint_mut);
+
 			Task ret = Dequeue(paint_queue);
 			pthread_sleep(3); // painting time 3 sec
 			printf("painted: %d\n", ret.ID);
-			//increment flag for type4 packaging
-			incrementType4CondCounter();
+		
+			incrementType4CondCounter(); //increment flag for type4 packaging
 			printf("incremented  in paint\n");
+
 			pthread_mutex_unlock(&paint_mut);
 	}
 }
@@ -305,9 +320,14 @@ void* AssemblyTask(void *arg){
 	if (!isEmpty(paint_queue)){
 			printf("Assembling...\n");
 			pthread_mutex_lock(&assembly_mut);
+
 			Task ret = Dequeue(assembly_queue);
 			pthread_sleep(2); // assembly time 2 sec
 			printf("assembled: %d\n", ret.ID);
+
+            incrementType5CondCounter();  //increment flag for type5 packaging
+            printf("incremented  in assembly\n");
+
 			pthread_mutex_unlock(&assembly_mut);
 	}
 }
@@ -319,8 +339,11 @@ void* QATask(void *arg){
 		Task ret = Dequeue(QA_queue);
 		pthread_sleep(2); // assembly time 2 sec
 		printf("QA done: %d\n", ret.ID);
+
 		incrementType4CondCounter();
+        incrementType5CondCounter();
 		printf("incremented  in QA\n");
+
 		pthread_mutex_unlock(&QA_mut);		
 	}
 
@@ -328,15 +351,31 @@ void* QATask(void *arg){
 
 void* addPackageQueue(void *arg){ //hangi typedan geliyo? 4-> (Veya 5se) cond variableını oku->uygunsa ekle
 	int giftType = *((int *) arg);
-	while (giftType ==4){
+
+	while (giftType == 4){
 		pthread_mutex_lock(&type4_package_cond_mut);
 		printf("waits for type4 finish.. %d\n", type4_package_cond);
 		
 		pthread_sleep(1);
+
 		if ((type4_package_cond % 2) == 0 && type4_package_cond != 0) break; 
 		pthread_mutex_unlock(&type4_package_cond_mut);
 	}
-	printf("type4_package_cond %d\n", type4_package_cond);
+
+    printf("type4_package_cond %d\n", type4_package_cond);
+
+    while (giftType == 5){
+		pthread_mutex_lock(&type5_package_cond_mut);
+		printf("waits for type5 finish.. %d\n", type5_package_cond);
+		
+		pthread_sleep(2); 
+
+		if ((type5_package_cond % 2) == 0 && type5_package_cond != 0) break; //for threads to finish then proceed
+		pthread_mutex_unlock(&type5_package_cond_mut);
+	}
+
+    printf("type5_package_cond %d\n", type5_package_cond);
+	
 	pthread_mutex_lock(&packaging_mut);
 	Task t;
 	task_count++;
@@ -346,7 +385,7 @@ void* addPackageQueue(void *arg){ //hangi typedan geliyo? 4-> (Veya 5se) cond va
 	pthread_mutex_unlock(&packaging_mut);
 	printf("Added packaging %d\n",t.ID);
         
-        pthread_exit(0);
+    pthread_exit(0);
 	
 }
 
@@ -407,6 +446,13 @@ void incrementType4CondCounter(){
 	type4_package_cond++;
 	pthread_mutex_unlock(&type4_package_cond_mut);
 }
+
+void incrementType5CondCounter(){
+	pthread_mutex_lock(&type5_package_cond_mut);
+	type5_package_cond++;
+	pthread_mutex_unlock(&type5_package_cond_mut);
+}
+
 
 double passedTime(){
      return time(NULL) % startTime;
