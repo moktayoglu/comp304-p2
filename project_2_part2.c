@@ -3,7 +3,7 @@
 #include <time.h>
 #include <pthread.h>
 
-int simulationTime = 20;    // simulation time
+int simulationTime = 120;    // simulation time
 int seed = 10;               // seed for randomness
 int emergencyFrequency = 30; // frequency of emergency gift requests from New Zealand
 
@@ -250,7 +250,10 @@ void* Santa(void *arg){
 		//pthread_sleep(1); //TODO
 		//printf("Santa\n");
 		DeliveryTask(NULL); //prioritizes delivery
-		QATask(NULL);
+		//PART 2 QA CONDITIONS ADDED
+		//if(isEmpty(delivery_queue) != QA_queue->size>=3){ //XOR
+			QATask(NULL);
+		//}
 		
 	}
 	pthread_exit(0);
@@ -274,7 +277,7 @@ void* ControlThread(void *arg){
 
 /* This is for probability demonstration*/
 int nextGiftType(){
-     	int types[20] = {0,0,1,1,1,1,1,1,1,1,2,2,2,2,3,3,3,3,4,5}; 
+     	int types[20] = {1,1,1,1,1,1,1,1,1,1,2,2,2,2,3,3,3,3,4,5}; 
      	int index = rand() % 20;
      	return types[index];
 
