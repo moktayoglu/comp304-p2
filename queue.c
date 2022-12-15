@@ -98,6 +98,35 @@ Task Dequeue(Queue *pQueue) {
     return ret;
 }
 
+int addToHead(Queue *pQueue, Task t) {
+    /* Bad parameter */
+    NODE* item = (NODE*) malloc(sizeof (NODE));
+    NODE* temp = (NODE*) malloc(sizeof (NODE));
+    item->data = t;
+
+    if ((pQueue == NULL) || (item == NULL)) {
+        return FALSE;
+    }
+    // if(pQueue->limit != 0)
+    if (pQueue->size >= pQueue->limit) {
+        return FALSE;
+    }
+    /*the queue is empty*/
+    item->prev = NULL;
+    if (pQueue->size == 0) {
+        pQueue->head = item;
+        pQueue->tail = item;
+
+    } else {
+        /*adding item to the head of the queue*/
+        temp  = pQueue->head;
+        pQueue->head = item;
+        item->prev = temp;
+    }
+    pQueue->size++; 
+    return TRUE;
+}
+
 int isEmpty(Queue* pQueue) {
     if (pQueue == NULL) {
         return FALSE;
