@@ -357,9 +357,10 @@ void* addPackageQueue(void *arg){ //hangi typedan geliyo? 4-> (Veya 5se) cond va
 		printf("waits for type4 finish.. %d\n", type4_package_cond);
 		
 		pthread_sleep(1);
+        pthread_mutex_unlock(&type4_package_cond_mut);
 
 		if ((type4_package_cond % 2) == 0 && type4_package_cond != 0) break; 
-		pthread_mutex_unlock(&type4_package_cond_mut);
+		
 	}
 
     printf("type4_package_cond %d\n", type4_package_cond);
@@ -369,9 +370,10 @@ void* addPackageQueue(void *arg){ //hangi typedan geliyo? 4-> (Veya 5se) cond va
 		printf("waits for type5 finish.. %d\n", type5_package_cond);
 		
 		pthread_sleep(2); 
+        pthread_mutex_unlock(&type5_package_cond_mut);
 
 		if ((type5_package_cond % 2) == 0 && type5_package_cond != 0) break; //for threads to finish then proceed
-		pthread_mutex_unlock(&type5_package_cond_mut);
+		
 	}
 
     printf("type5_package_cond %d\n", type5_package_cond);
