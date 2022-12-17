@@ -3,7 +3,7 @@
 #include <time.h>
 #include <pthread.h>
 
-int simulationTime = 120;    // simulation time
+int simulationTime = 20;    // simulation time
 int seed = 10;               // seed for randomness
 int emergencyFrequency = 30; // frequency of emergency gift requests from New Zealand
 
@@ -604,7 +604,7 @@ void printLog(Task* t){
 	printf("print CALLED\n");
 	pthread_mutex_lock(&log_mut);
 	FILE *f = fopen("events.log", "a");
-	fprintf(f, "%d\t%d\t%d\t\t%s\t\t\t%d\t\t%s\n", t->ID, t->giftID, t->giftType, t->type, t->requestTime, t->responsible);
+	fprintf(f, "%d\t%d\t%d\t\t\t%s\t\t\t\t%d\t\t\t\t%s\n", t->ID, t->giftID, t->giftType, t->type, t->requestTime, t->responsible);
 	pthread_mutex_unlock(&log_mut);
 	fclose(f);
 }
