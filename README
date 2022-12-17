@@ -1,4 +1,4 @@
-All parts working
+All parts working (hopefully validated with your checks :))
 
 to compile use:
 gcc [project_file_name] -o [executable name] -lpthread
