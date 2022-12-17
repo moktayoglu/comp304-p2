@@ -6,11 +6,12 @@
 
 typedef struct {
     int ID;
-    int type;
+    char *type;
     // you might want to add variables here!
-    //int giftID;
+    int giftID;
     int giftType;
-    //int requestTime;*/
+    int requestTime;
+    
 } Task;
 
 /* a link in the queue, holds the data and point to the next Node */

@@ -21,12 +21,13 @@ void* addAssemblyQueue(void *arg);
 void* addQAQueue(void *arg);
 void incrementType4CondCounter();
 void incrementType5CondCounter();
-Task* createTask(int giftType, int taskType);
+Task* createTask(int giftType, char* taskType);
 void addQueue(Task t, Queue *q, pthread_mutex_t que_mut);
 void printLog(Task* t);
 
 time_t startTime;
 int task_count = 0; 
+int gift_count = 0;
 int type4_package_cond = 0;
 int type5_package_cond = 0;
 //new funcs
@@ -49,7 +50,7 @@ struct arg_struct {
     pthread_mutex_t arg2;
 };
 //mutexes
-pthread_mutex_t packaging_mut, paint_mut, assembly_mut, QA_mut, delivery_mut, task_count_mut;
+pthread_mutex_t packaging_mut, paint_mut, assembly_mut, QA_mut, delivery_mut, task_count_mut, gift_count_mut;
 pthread_mutex_t log_mut, taskCount_mut;
 pthread_mutex_t type4_package_cond_mut, type5_package_cond_mut;
 
@@ -137,8 +138,8 @@ int main(int argc,char **argv){
     pthread_t package_thread, delivery_thread, paint_thread, assembly_thread, QA_thread;
     //printf("start: %d\n", startTime);
     FILE *f = fopen("events.log", "w");
-    fprintf(f, "TaskID\tGiftType\tTaskType\n");
-    fprintf(f, "____________________________\n");
+    fprintf(f, "TaskID\tGiftID\tGiftType\tTaskType\tRequestTime\n");
+    fprintf(f, "______________________________________________________________\n");
     fclose(f);
     //Simulates and synchornizes adding of tasks to queues
     while(passedTime()<simulationTime){
@@ -146,10 +147,14 @@ int main(int argc,char **argv){
 	        printf("%f\n", passedTime());
 	        
 	    	//type 1 gift
-	    	int gift_type = nextGiftType();
-	    	
+	    	//int gift_type = nextGiftType();
+	    	int gift_type = 5;
 	    	int* giftT = malloc(sizeof(int));
 	    	*giftT = gift_type;
+	    	
+	    	pthread_mutex_lock(&gift_count_mut);
+	    	gift_count++;
+	    	pthread_mutex_unlock(&gift_count_mut);
 	    	
 	    	if(gift_type == 1){
 	    		int giftT1 = 1;
@@ -242,6 +247,7 @@ int main(int argc,char **argv){
     }
     //pthread_cond_signal(&time_cond);
     printf("Ending Simulation...\n");
+    
     //pthrread_cond_destroy(&time_cond);
  
     
@@ -302,6 +308,7 @@ void* ControlThread(void *arg){
 int nextGiftType(){
      	int types[20] = {0,0,1,1,1,1,1,1,1,1,2,2,2,2,3,3,3,3,4,5}; 
      	int index = rand() % 20;
+     	//printf("index: %d %d",index, types[index]);
      	return types[index];
 
 }
@@ -422,7 +429,8 @@ void* addPackageQueue(void *arg){ //hangi typedan geliyo? 4-> (Veya 5se) cond va
 	task_count++;
 	pthread_mutex_unlock(&taskCount_mut);
 	t.ID = task_count;
-	t.type = 1; //TODO
+	
+	t.type = "C"; 
 	Enqueue(packaging_queue, t);
 	pthread_mutex_unlock(&packaging_mut);
 	printf("Added packaging %d\n",t.ID);
@@ -434,7 +442,7 @@ void* addPackageQueue(void *arg){ //hangi typedan geliyo? 4-> (Veya 5se) cond va
 void* addDeliveryQueue(void *arg){
 	int giftType = *((int *) arg);
 	//free(arg);
-        Task* t = createTask(giftType, 2);
+        Task* t = createTask(giftType, "D");
         pthread_mutex_lock(&delivery_mut);
 	Enqueue(delivery_queue, *t);
 	pthread_mutex_unlock(&delivery_mut); 
@@ -446,7 +454,7 @@ void* addDeliveryQueue(void *arg){
 void* addPaintQueue(void *arg){  //Task no 3
 	int giftType = *((int *) arg);
 	//free(arg);
-        Task* t = createTask(giftType, 3);
+        Task* t = createTask(giftType, "P");
         pthread_mutex_lock(&paint_mut);
 	Enqueue(paint_queue, *t);
 	pthread_mutex_unlock(&paint_mut); 
@@ -458,7 +466,8 @@ void* addPaintQueue(void *arg){  //Task no 3
 void* addAssemblyQueue(void *arg){ //Task no 4
 	int giftType = *((int *) arg);
 	//free(arg);
-        Task* t = createTask(giftType, 4);
+	
+        Task* t = createTask(giftType, "A");
         pthread_mutex_lock(&assembly_mut);
 	Enqueue(assembly_queue, *t);
 	//free(t);
@@ -470,7 +479,7 @@ void* addAssemblyQueue(void *arg){ //Task no 4
 void* addQAQueue(void *arg){ //Task no 5
 	int giftType = *((int *) arg);
 	//free(arg);
-        Task* t = createTask(giftType, 5);
+        Task* t = createTask(giftType, "Q");
         pthread_mutex_lock(&QA_mut);
 	Enqueue(QA_queue, *t);
 	pthread_mutex_unlock(&QA_mut); 
@@ -495,7 +504,7 @@ void incrementType5CondCounter(Task t){
 	}
 }
 
-Task* createTask(int giftType, int taskType){
+Task* createTask(int giftType, char* taskType){
 	Task *t = (Task *) malloc(sizeof(Task));
 	pthread_mutex_lock(&taskCount_mut);
         task_count++;
@@ -504,6 +513,10 @@ Task* createTask(int giftType, int taskType){
         t->ID = task_count;
         t->type = taskType; //TODO
         t->giftType = giftType;
+        t->requestTime = (int) passedTime();
+        pthread_mutex_lock(&gift_count_mut);
+        t->giftID = gift_count;
+        pthread_mutex_unlock(&gift_count_mut);
         return t;
 
 }
@@ -518,7 +531,7 @@ void printLog(Task* t){
 	printf("print CALLED\n");
 	pthread_mutex_lock(&log_mut);
 	FILE *f = fopen("events.log", "a");
-	fprintf(f, "%d\t%d\t%d\n", t->ID, t->giftType, t->type);
+	fprintf(f, "%d\t%d\t%d\t\t%s\t\t%d\n", t->ID, t->giftID, t->giftType, t->type, t->requestTime);
 	pthread_mutex_unlock(&log_mut);
 	fclose(f);
 }
