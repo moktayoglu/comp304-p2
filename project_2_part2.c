@@ -323,7 +323,7 @@ void* ControlThread(void *arg){
 
 /* This is for probability demonstration*/
 int nextGiftType(){
-     	int types[20] = {0,0,1,1,1,1,1,1,1,1,2,2,2,2,3,3,3,3,4,5}; 
+     	int types[20] = {1,1,1,1,1,1,1,1,1,1,2,2,2,2,3,3,3,3,4,5}; 
      	int index = rand() % 20;
      	//printf("index: %d %d",index, types[index]);
      	return types[index];
