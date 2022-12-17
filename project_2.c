@@ -139,7 +139,7 @@ int main(int argc,char **argv){
 
     //opening events log and adding headers.
     FILE *f = fopen("events.log", "w");
-    fprintf(f, "TaskID\tGiftID\tGiftType\tTaskType\tRequestTime\n");
+    fprintf(f, "TaskID\tGiftID\tGiftType\tTaskType\tRequestTime\tResponsible\n");
     fprintf(f, "______________________________________________________________\n");
     fclose(f);
 
@@ -244,7 +244,7 @@ void* ElfA(void *arg){
 	while(passedTime()<simulationTime){
 		//pthread_sleep(1); //TODO
 		PackagingTask(NULL);
-        	PaintingTask(NULL); //only does paint
+        PaintingTask(NULL); //only does paint
 		
 	}
 	pthread_exit(0);
@@ -255,7 +255,8 @@ void* ElfB(void *arg){
 	while(passedTime()<simulationTime){
 		//pthread_sleep(1); //TODO
 		PackagingTask(NULL);
-        	AssemblyTask(NULL); //only does assembly
+        AssemblyTask(NULL); //only does assembly
+        
 		
 	}
 	pthread_exit(0);
@@ -267,6 +268,7 @@ void* Santa(void *arg){
 		//pthread_sleep(1); //TODO
 		DeliveryTask(NULL); //prioritizes delivery
 		QATask(NULL);
+
 		
 	}
 	pthread_exit(0);
@@ -310,6 +312,7 @@ void* PackagingTask(void *arg){
 			printf("elf in if\n");
 			pthread_mutex_lock(&packaging_mut);
 			Task ret = Dequeue(packaging_queue);
+            ret.responsible = "A"; //TODO
 			pthread_sleep(1); // packaging time 1 sec
 			printf("dequeued: %d\n", ret.ID);
 			pthread_mutex_unlock(&packaging_mut);
@@ -323,6 +326,7 @@ void* DeliveryTask(void *arg){
 			printf("Santa starts work...\n");
 			pthread_mutex_lock(&delivery_mut);
 			Task ret = Dequeue(delivery_queue);
+            ret.responsible = "S";
 			pthread_sleep(1); // deliver time 1 sec
 			printf("delivered: %d\n", ret.ID);
 			pthread_mutex_unlock(&delivery_mut);
@@ -336,6 +340,8 @@ void* PaintingTask(void *arg){
 			pthread_mutex_lock(&paint_mut);
 
 			Task ret = Dequeue(paint_queue);
+            ret.responsible = "A";
+            
 			pthread_sleep(3); // painting time 3 sec
 			printf("painted: %d\n", ret.ID);
 		
@@ -355,6 +361,7 @@ void* AssemblyTask(void *arg){
 			pthread_mutex_lock(&assembly_mut);
 
 			Task ret = Dequeue(assembly_queue);
+            ret.responsible = "B";
 			pthread_sleep(2); // assembly time 2 sec
 			printf("assembled: %d\n", ret.ID);
 			
@@ -372,6 +379,7 @@ void* QATask(void *arg){
 		printf("QA...\n");
 		pthread_mutex_lock(&QA_mut);
 		Task ret = Dequeue(QA_queue);
+        ret.responsible = "S";
 		pthread_sleep(2); // assembly time 2 sec
 		printf("QA done: %d\n", ret.ID);
 		
@@ -534,7 +542,7 @@ void printLog(Task* t){
 	printf("print CALLED\n");
 	pthread_mutex_lock(&log_mut);
 	FILE *f = fopen("events.log", "a");
-	fprintf(f, "%d\t%d\t%d\t\t%s\t\t%d\n", t->ID, t->giftID, t->giftType, t->type, t->requestTime);
+	fprintf(f, "%d\t%d\t%d\t\t%s\t\t%d\t\t\t%s\n", t->ID, t->giftID, t->giftType, t->type, t->requestTime, t->responsible);
 	pthread_mutex_unlock(&log_mut);
 	fclose(f);
 }
