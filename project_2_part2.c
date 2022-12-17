@@ -240,7 +240,7 @@ void* doType2(void *arg){
 
 void* doType3(void *arg){
 
-	pthread_t package_thread3, delivery_thread3, assembly_thread3;
+	pthread_t assembly_thread3;
 	    		
 	printf("package + assembly\n");
         pthread_create(&assembly_thread3, NULL, addAssemblyQueue, arg);
@@ -252,7 +252,7 @@ void* doType3(void *arg){
 
 void* doType4(void *arg){
 	
-	pthread_t package_thread4, delivery_thread4, paint_thread4, QA_thread4;
+	pthread_t paint_thread4, QA_thread4;
 
 	printf("paint + pack + QA\n");
 	pthread_create(&paint_thread4, NULL, addPaintQueue,arg);
@@ -323,7 +323,7 @@ void* ControlThread(void *arg){
 
 /* This is for probability demonstration*/
 int nextGiftType(){
-     	int types[20] = {0,0,1,1,1,1,1,1,1,1,2,2,2,2,3,3,3,3,4,5}; 
+     	int types[20] = {1,1,1,1,1,1,1,1,1,1,2,2,2,2,3,3,3,3,4,5}; 
      	int index = rand() % 20;
      	//printf("index: %d %d",index, types[index]);
      	return types[index];
