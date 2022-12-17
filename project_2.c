@@ -144,10 +144,9 @@ int main(int argc,char **argv){
     pthread_mutex_init(&QA_mut, NULL);
     pthread_mutex_init(&delivery_mut, NULL);
     
-    //pthread_t package_thread, delivery_thread, paint_thread, assembly_thread, QA_thread;
-    //printf("start: %d\n", startTime);
+    
     FILE *f = fopen("events.log", "w");
-    fprintf(f, "TaskID\tGiftID\tGiftType\tTaskType\tRequestTime\tResponsible\n");
+    fprintf(f, "TaskID\tGiftID\tGiftType\tTaskType\tRequestTime\TurnaroundTime\tResponsible\n");
     fprintf(f, "______________________________________________________________\n");
     fclose(f);
     //Simulates and synchornizes adding of tasks to queues
@@ -168,12 +167,7 @@ int main(int argc,char **argv){
 	    	//pthread_t package_thread, delivery_thread, paint_thread, assembly_thread, QA_thread;
 	    	if(gift_type == 1){
 	    		pthread_t type1_thread;
-	    		pthread_create(&type1_thread, NULL, doType1, giftT);
-	    		/*pthread_detach(package_thread);
-                	pthread_detach(delivery_thread);*/
-
-	    		
-	    		
+	    		pthread_create(&type1_thread, NULL, doType1, giftT);	
 	    	}
 	    	
 	    	if(gift_type == 2){
@@ -552,12 +546,15 @@ Task* createTask(int giftType, char* taskType){
         task_count++;
         printf("task count:  %d\n", task_count);
         pthread_mutex_unlock(&taskCount_mut);
+       
         t->ID = task_count;
         t->type = taskType; //TODO
         t->giftType = giftType;
         t->requestTime = (int) passedTime();
         pthread_mutex_lock(&gift_count_mut);
         t->giftID = gift_count;
+        t->endTime = time(NULL) - simulationTime;
+        t->turnaround = t->endTime - t-> requestTime;
         pthread_mutex_unlock(&gift_count_mut);
         return t;
 
@@ -568,7 +565,7 @@ void printLog(Task* t){
 	printf("print CALLED\n");
 	pthread_mutex_lock(&log_mut);
 	FILE *f = fopen("events.log", "a");
-	fprintf(f, "%d\t\t%d\t\t%d\t\t\t%s\t\t\t%d\t\t\t%s\n", t->ID, t->giftID, t->giftType, t->type, t->requestTime, t->responsible);
+	fprintf(f, "%d\t\t%d\t\t%d\t\t\t%s\t\t\t%d\t\t\t\t%ld\t\t\t\t%s\n", t->ID, t->giftID, t->giftType, t->type, t->requestTime, t->turnaround, t->responsible);
 	pthread_mutex_unlock(&log_mut);
 	fclose(f);
 }

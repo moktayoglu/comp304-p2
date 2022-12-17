@@ -12,6 +12,8 @@ typedef struct {
     int giftType;
     int requestTime;
     char *responsible;
+    time_t turnaround;
+    time_t endTime;
     
 } Task;
 
