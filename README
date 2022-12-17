@@ -1,0 +1,15 @@
+All parts working
+
+to compile use:
+gcc [project_file_name] -o [executable name] -lpthread
+
+Implementation details:
+
+For synchronization of five types of gift bundles we have made the code add the downstream task after the task is finished. 
+Each type of task's thread start of with the first 1 or 2 starting tasks that leads to packaging. With appropriate condition checks using mutexes.
+the next downstream task is added to the following queue.
+
+Specifically for type4 and type5 tasks where QA and Paint (or assembly) caan occur simultaneously but both need to be finished to proceed to packaging we 
+used counting mutexes.
+
+For part2 and part3 necessarry conditions are added.
