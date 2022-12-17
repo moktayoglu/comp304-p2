@@ -3,7 +3,7 @@
 #include <time.h>
 #include <pthread.h>
 
-int simulationTime = 120;    // simulation time
+int simulationTime = 30;    // simulation time
 int seed = 10;               // seed for randomness
 int emergencyFrequency = 30; // frequency of emergency gift requests from New Zealand
 
@@ -147,7 +147,7 @@ int main(int argc,char **argv){
     //pthread_t package_thread, delivery_thread, paint_thread, assembly_thread, QA_thread;
     //printf("start: %d\n", startTime);
     FILE *f = fopen("events.log", "w");
-    fprintf(f, "TaskID\tGiftID\tGiftType\tTaskType\tRequestTime\n");
+    fprintf(f, "TaskID\tGiftID\tGiftType\tTaskType\tRequestTime\tResponsible\n");
     fprintf(f, "______________________________________________________________\n");
     fclose(f);
     //Simulates and synchornizes adding of tasks to queues
@@ -352,6 +352,7 @@ void* PackagingTask(void *arg){
 			printf("elf in if\n");
 			pthread_mutex_lock(&packaging_mut);
 			Task ret = Dequeue(packaging_queue);
+            ret.responsible = "A";  //TODO
 			pthread_sleep(1); //packaging time 1 sec
 			printf("dequeued: %d\n", ret.ID);
 			pthread_mutex_unlock(&packaging_mut);
@@ -367,6 +368,7 @@ void* DeliveryTask(void *arg){
 			printf("Santa starts work...\n");
 			pthread_mutex_lock(&delivery_mut);
 			Task ret = Dequeue(delivery_queue);
+            ret.responsible = "S";
 			pthread_sleep(1); //deliver time 1 sec
 			printf("delivered: %d\n", ret.ID);
 			pthread_mutex_unlock(&delivery_mut);
@@ -381,6 +383,7 @@ void* PaintingTask(void *arg){
 			pthread_mutex_lock(&paint_mut);
 
 			Task ret = Dequeue(paint_queue);
+            ret.responsible = "A";
 			pthread_sleep(3); // painting time 3 sec
 			printf("painted: %d\n", ret.ID);
 		
@@ -402,6 +405,7 @@ void* AssemblyTask(void *arg){
 			pthread_mutex_lock(&assembly_mut);
 
 			Task ret = Dequeue(assembly_queue);
+            ret.responsible= "B";
 			pthread_sleep(2); // assembly time 2 sec
 			printf("assembled: %d\n", ret.ID);
 			
@@ -421,6 +425,7 @@ void* QATask(void *arg){
 		printf("QA...\n");
 		pthread_mutex_lock(&QA_mut);
 		Task ret = Dequeue(QA_queue);
+        ret.responsible = "S";
 		pthread_sleep(2); // assembly time 2 sec
 		printf("QA done: %d\n", ret.ID);
 		
@@ -563,7 +568,7 @@ void printLog(Task* t){
 	printf("print CALLED\n");
 	pthread_mutex_lock(&log_mut);
 	FILE *f = fopen("events.log", "a");
-	fprintf(f, "%d\t%d\t%d\t\t%s\t\t%d\n", t->ID, t->giftID, t->giftType, t->type, t->requestTime);
+	fprintf(f, "%d\t\t%d\t\t%d\t\t\t%s\t\t\t%d\t\t\t%s\n", t->ID, t->giftID, t->giftType, t->type, t->requestTime, t->responsible);
 	pthread_mutex_unlock(&log_mut);
 	fclose(f);
 }

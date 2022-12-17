@@ -11,6 +11,7 @@ typedef struct {
     int giftID;
     int giftType;
     int requestTime;
+    char *responsible;
     
 } Task;
 
