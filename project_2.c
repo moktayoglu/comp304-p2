@@ -191,11 +191,11 @@ int main(int argc,char **argv){
                 	pthread_create(&assembly_thread, NULL, addAssemblyQueue, giftT);
                 	pthread_create(&package_thread, NULL, addPackageQueue, giftT);
 	    		pthread_create(&delivery_thread, NULL, addDeliveryQueue, giftT);
-	    		
+
 			/*pthread_detach(assembly_thread);
                 	pthread_detach(package_thread);
                 	pthread_detach(delivery_thread);*/
-                	pthread_join(assembly_thread, NULL);
+                pthread_join(assembly_thread, NULL);
 	    		pthread_join(package_thread, NULL);
 	    		pthread_join(delivery_thread, NULL);
 
@@ -214,7 +214,7 @@ int main(int argc,char **argv){
 	    		pthread_detach(QA_thread);
                 	pthread_detach(package_thread);
                 	pthread_detach(delivery_thread);*/
-                	
+	    		
 	    		pthread_join(package_thread, NULL);
 	    		pthread_join(delivery_thread, NULL);
 
@@ -253,7 +253,7 @@ void* ElfA(void *arg){
 		pthread_sleep(1); //TODO
 		//printf("elfA\n");
 		PackagingTask(NULL);
-        	PaintingTask(NULL); //only does paint
+        PaintingTask(NULL); //only does paint
 		
 	}
 	pthread_exit(0);
@@ -264,7 +264,7 @@ void* ElfB(void *arg){
 		pthread_sleep(1); //TODO
 		//printf("elfB\n");
 		PackagingTask(NULL);
-        	AssemblyTask(NULL); //only does assembly
+        AssemblyTask(NULL); //only does assembly
 		
 	}
 	pthread_exit(0);
@@ -358,10 +358,10 @@ void* AssemblyTask(void *arg){
 			Task ret = Dequeue(assembly_queue);
 			pthread_sleep(2); // assembly time 2 sec
 			printf("assembled: %d\n", ret.ID);
-			
+
             		incrementType5CondCounter(ret);  //increment flag for type5 packaging
             		
-            		printf("incremented  in assembly\n");
+            printf("incremented  in assembly\n");
 
 			pthread_mutex_unlock(&assembly_mut);
 			printLog(&ret);
@@ -375,14 +375,14 @@ void* QATask(void *arg){
 		Task ret = Dequeue(QA_queue);
 		pthread_sleep(2); // assembly time 2 sec
 		printf("QA done: %d\n", ret.ID);
-		
+
 		incrementType4CondCounter(ret);
 		
         	incrementType5CondCounter(ret);
         	
 		printf("incremented  in QA\n");
 
-		pthread_mutex_unlock(&QA_mut);	
+		pthread_mutex_unlock(&QA_mut);		
 		printLog(&ret);	
 	}
 
@@ -402,9 +402,9 @@ void* addPackageQueue(void *arg){ //hangi typedan geliyo? 4-> (Veya 5se) cond va
 		
 	}
 
-    	printf("type4_package_cond %d\n", type4_package_cond);
+    printf("type4_package_cond %d\n", type4_package_cond);
 
-    	while (giftType == 5){
+    while (giftType == 5){
 		pthread_mutex_lock(&type5_package_cond_mut);
 		//printf("waits for type5 finish.. %d\n", type5_package_cond);
 		int now_type5_cond = type5_package_cond;
@@ -437,8 +437,8 @@ void* addDeliveryQueue(void *arg){
         Task* t = createTask(giftType, 2);
         pthread_mutex_lock(&delivery_mut);
 	Enqueue(delivery_queue, *t);
-	pthread_mutex_unlock(&delivery_mut); 
-	pthread_exit(0);
+        pthread_mutex_unlock(&delivery_mut);
+        pthread_exit(0);
         //addQueue(t, delivery_queue, delivery_mut);	
 	
 }
@@ -450,7 +450,7 @@ void* addPaintQueue(void *arg){  //Task no 3
         pthread_mutex_lock(&paint_mut);
 	Enqueue(paint_queue, *t);
 	pthread_mutex_unlock(&paint_mut); 
-	pthread_exit(0);
+        pthread_exit(0);
         //addQueue(t, paint_queue, paint_mut);	
 	
 }
@@ -463,7 +463,7 @@ void* addAssemblyQueue(void *arg){ //Task no 4
 	Enqueue(assembly_queue, *t);
 	//free(t);
 	pthread_mutex_unlock(&assembly_mut); 
-	pthread_exit(0);
+        pthread_exit(0);
         //addQueue(t, assembly_queue, assembly_mut);	
 }
 
@@ -474,25 +474,25 @@ void* addQAQueue(void *arg){ //Task no 5
         pthread_mutex_lock(&QA_mut);
 	Enqueue(QA_queue, *t);
 	pthread_mutex_unlock(&QA_mut); 
-	pthread_exit(0);
+        pthread_exit(0);
         //addQueue(t, QA_queue, QA_mut);
-      
+
 }
 
 void incrementType4CondCounter(Task t){
 	if (t.giftType == 4){
-		pthread_mutex_lock(&type4_package_cond_mut);
-		type4_package_cond++;
-		pthread_mutex_unlock(&type4_package_cond_mut);
-	}
+	pthread_mutex_lock(&type4_package_cond_mut);
+	type4_package_cond++;
+	pthread_mutex_unlock(&type4_package_cond_mut);
+}
 }
 
 void incrementType5CondCounter(Task t){
 	if (t.giftType == 5){
-		pthread_mutex_lock(&type5_package_cond_mut);
-		type5_package_cond++;
-		pthread_mutex_unlock(&type5_package_cond_mut);
-	}
+	pthread_mutex_lock(&type5_package_cond_mut);
+	type5_package_cond++;
+	pthread_mutex_unlock(&type5_package_cond_mut);
+}
 }
 
 Task* createTask(int giftType, int taskType){
@@ -525,4 +525,3 @@ void printLog(Task* t){
 double passedTime(){
      return time(NULL) % startTime;
 }
-
